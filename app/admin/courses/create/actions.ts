@@ -1,10 +1,15 @@
-"use server";
+
+
+
 import { requireAdmin } from "@/app/data/admin/require-admin";
 import arcjet, { detectBot, fixedWindow } from "@/lib/arcjet";
 import { prisma } from "@/lib/db";
 import { ApiResponse } from "@/lib/types";
 import { courseSchema, CourseSchemaType } from "@/lib/zodSchemas";
 import { request } from "@arcjet/next";
+import { revalidatePath } from "next/cache";
+import { success } from "zod";
+
 
 const aj = arcjet.withRule(
   detectBot({
@@ -19,110 +24,122 @@ const aj = arcjet.withRule(
   })
 );
 
-export async function Createcourse(data: CourseSchemaType): Promise<ApiResponse> {
-  const session = await requireAdmin();
+
+export async function editCourse(data:CourseSchemaType, courseId:string):Promise<ApiResponse>{
+  const user = await requireAdmin();
+
+
   try {
-    const req = await request();
-
-    const decision = await aj.protect(req, {
-      fingerprint: session.user.id,
-    });
-    if(decision.isDenied()){
-      if(decision.reason.isRateLimit()){
-        return{
-          status: "error",
-          message: "You have been blocked due to rate limiting",
-
-        };
-
-      }
-      else{
-        return{
-          status: "error",
-          message: "You are a bot! If this is a mistake contact our support",
-        };
-      }
-    }
+        const req = await request();
     
-    // Check if user is authenticated
-    if (!session?.user?.id) {
-      console.error('❌ No user session found');
-      return {
+        const decision = await aj.protect(req, {
+          fingerprint: user.user.id,
+        });
+        if(decision.isDenied()){
+          if(decision.reason.isRateLimit()){
+            return{
+              status: "error",
+              message: "You have been blocked due to rate limiting",
+    
+            };
+    
+          }
+          else{
+            return{
+              status: "error",
+              message: "You are a bot! If this is a mistake contact our support",
+            };
+          }
+        }
+    const result = courseSchema.safeParse(data);
+    if(!result.success){
+      return{
         status: "error",
-        message: "You must be logged in to create a course",
+        message: "Invalid data",
       };
     }
     
-    // Validate data
-    const validation = courseSchema.safeParse(data);
-    
-    if (!validation.success) {
-      console.error('❌ Validation failed:', validation.error.issues);
-      return {
-        status: "error",
-        message: "Invalid form data: " + validation.error.issues.map(i => i.message).join(', '),
-      };
-    }
-    
-    console.log('✅ Validation passed, creating course...');
-    
-    // Create course in database
-    const course = await prisma.course.create({
-      data: {
-        title: validation.data.title,
-        slug: validation.data.slug,
-        description: validation.data.description,
-        smallDescription: validation.data.smallDescription,
-        fileKey: validation.data.fileKey,
-        price: validation.data.price,
-        duration: validation.data.duration,
-        level: validation.data.level,
-        category: validation.data.category,
-        status: validation.data.status,
-        userId: session.user.id,
-      },
+    await prisma.course.update({
+      where:{
+        id: courseId,
+        userId: user.user.id,
+     },
+     data:{
+      ...result.data,
+     },
     });
-    
-    console.log('✅ Course created successfully:', course.id);
-    
-    return {
+
+
+    return{
       status: "success",
-      message: "Course created successfully",
+      message:"Course updated sucessfully",
+    };
+
+
+    
+  } catch  {
+    return{
+      status: 'error',
+      message:'Failed to update course',
     };
     
-  } catch (error) {
-    // ✅ FIX: Log the actual error to see what's failing
-    console.error('❌ Error creating course:', error);
-    
-    // Check for specific Prisma errors
-    if (error instanceof Error) {
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-      
-      // Handle specific errors
-      if (error.message.includes('Unique constraint')) {
-        return {
-          status: "error",
-          message: "A course with this slug already exists",
-        };
-      }
-      
-      if (error.message.includes('Foreign key constraint')) {
-        return {
-          status: "error",
-          message: "Invalid user reference",
-        };
-      }
-      
-      return {
-        status: "error",
-        message: `Failed to create course: ${error.message}`,
-      };
-    }
-    
-    return {
-      status: "error",
-      message: "Failed to create course",
-    };
   }
+}
+
+
+export async function reorderLessons(
+  chapterId : string,
+  lessons: {id: string; position: number}[],
+  courseId: string
+): Promise<ApiResponse> {
+
+
+  try {
+    if(!lessons || lessons.length === 0){
+      return{
+      status: "error",
+      message: "No lessons provided for reordering.",
+
+
+      };
+
+
+    }
+
+
+    const updates = lessons.map((lesson) => prisma.lesson.update({
+      where:{
+        id: lesson.id,
+        chapterId : chapterId,
+      },
+      data: {
+        position: lesson.position,
+      },
+
+
+    }));
+
+
+    await prisma.$transaction(updates);
+
+
+    revalidatePath(`/admin/courses/${courseId}/edit`);
+
+
+    return{
+      status: "success",
+      message: "Lessons reordered successfully",
+    };
+
+
+
+    
+  } catch {
+    return{
+      status: "error",
+      message: "Failed to reorder lessons.",
+    };
+    
+  }
+  
 }
