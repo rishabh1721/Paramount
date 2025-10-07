@@ -28,10 +28,23 @@ interface UploaderState {
 interface UploaderProps {
   onChange?: (key: string) => void;
   value?: string;
+  accept?: string;
+  maxSize?: number;
 }
 
-export function Uploader({ onChange, value }: UploaderProps) {
+export function Uploader({ onChange, value, accept = "image/*", maxSize }: UploaderProps) {
   const fileUrl = useConstructUrl(value || "")
+  
+  // Determine if this is a video uploader based on accept prop
+  const isVideoUploader = accept.includes("video");
+  
+  // Determine max size based on accept prop if not explicitly provided
+  const defaultMaxSize = isVideoUploader 
+    ? 5 * 1024 * 1024 * 1024 // 1GB for videos
+    : 5 * 1024 * 1024; // 5MB for images
+  
+  const finalMaxSize = maxSize || defaultMaxSize;
+
   const [fileState, setFileState] = useState<UploaderState>({
     error: false,
     file: null,
@@ -39,7 +52,7 @@ export function Uploader({ onChange, value }: UploaderProps) {
     uploading: false,
     progress: 0,
     isDeleting: false,
-    fileType: "image",
+    fileType: isVideoUploader ? "video" : "image", // Set initial type based on accept
     objectUrl: undefined,
     key: undefined,
   });
@@ -47,14 +60,48 @@ export function Uploader({ onChange, value }: UploaderProps) {
   // Initialize state from value prop (for edit forms)
   useEffect(() => {
     if (value && fileUrl) {
+      // Detect file type based on accept prop first, then URL
+      const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.flv', '.wmv', '.m4v', '.3gp'];
+      
+      const isVideoByExtension = videoExtensions.some(ext => 
+        value.toLowerCase().includes(ext) || fileUrl.toLowerCase().includes(ext)
+      );
+      
+      // Priority: accept prop > file extension
+      const detectedFileType = isVideoUploader || isVideoByExtension ? "video" : "image";
+
+      console.log('🎬 Uploader Init:', { 
+        value, 
+        accept, 
+        isVideoUploader, 
+        isVideoByExtension,
+        detectedFileType 
+      });
+
       setFileState((prev) => ({
         ...prev,
         key: value,
         objectUrl: fileUrl,
         error: false,
+        fileType: detectedFileType,
+        file: null,
+      }));
+    } else if (!value) {
+      // Clear state when value is empty
+      setFileState((prev) => ({
+        ...prev,
+        error: false,
+        file: null,
+        id: null,
+        uploading: false,
+        progress: 0,
+        isDeleting: false,
+        fileType: isVideoUploader ? "video" : "image",
+        objectUrl: undefined,
+        key: undefined,
       }));
     }
-  }, [value, fileUrl]);
+  }, [value, fileUrl, isVideoUploader, accept]);
 
   async function uploadFile(file: File) {
     setFileState((prev) => ({
@@ -212,7 +259,7 @@ export function Uploader({ onChange, value }: UploaderProps) {
         progress: 0,
         objectUrl: undefined,
         error: false,
-        fileType: "image",
+        fileType: isVideoUploader ? "video" : "image",
         id: null,
         isDeleting: false,
         key: undefined,
@@ -236,6 +283,17 @@ export function Uploader({ onChange, value }: UploaderProps) {
     }
   }
 
+  // Helper function to format file size
+  function formatFileSize(bytes: number): string {
+    if (bytes >= 1024 * 1024 * 1024) {
+      return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+    } else if (bytes >= 1024 * 1024) {
+      return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    } else {
+      return `${(bytes / 1024).toFixed(2)} KB`;
+    }
+  }
+
   function rejectedFiles(fileRejection: FileRejection[]) {
     if (fileRejection.length) {
       const tooManyFiles = fileRejection.find((rejection) => 
@@ -246,21 +304,36 @@ export function Uploader({ onChange, value }: UploaderProps) {
         rejection.errors[0].code === "file-too-large"
       );
 
+      const invalidType = fileRejection.find((rejection) =>
+        rejection.errors[0].code === "file-invalid-type"
+      );
+
       if (fileSizeToBig) {
-        toast.error("File size exceeds the limit (5MB max)");
+        const maxSizeFormatted = formatFileSize(finalMaxSize);
+        toast.error(`File size exceeds the limit (${maxSizeFormatted} max)`);
       }
       if (tooManyFiles) {
         toast.error("Too many files selected, max is 1");
       }
+      if (invalidType) {
+        toast.error(`Invalid file type. Please upload ${isVideoUploader ? "a video file" : "an image file"}.`);
+      }
     }
   }
 
+  // Convert accept prop to dropzone format
+  const acceptObject = accept.split(',').reduce((acc, type) => {
+    const trimmedType = type.trim();
+    acc[trimmedType] = [];
+    return acc;
+  }, {} as Record<string, string[]>);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { "image/*": [] },
+    accept: acceptObject,
     maxFiles: 1,
     multiple: false,
-    maxSize: 5 * 1024 * 1024,
+    maxSize: finalMaxSize,
     onDropRejected: rejectedFiles,
     disabled: fileState.uploading || fileState.isDeleting,
   });
@@ -288,6 +361,8 @@ export function Uploader({ onChange, value }: UploaderProps) {
           fileUrl={fileState.objectUrl}
           fileName={fileState.file?.name || "Uploaded file"}
           onRemove={handleRemoveFile}
+          isDeleting={fileState.isDeleting}
+          fileType={fileState.fileType}
         />
       );
     }

@@ -1,9 +1,10 @@
+"use client";
 import { AdminCourseType } from "@/app/data/admin/admin-get-courses";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useConstructUrl } from "@/hooks/use-construct-url";
-import { ArrowRight, Eye, MoreVertical, Pencil, School, TimerIcon, Trash2 } from "lucide-react";
+import { ArrowRight, Eye, MoreVertical, Pencil, School, TimerIcon, Trash2, ImageIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -53,15 +54,23 @@ export function AdminCourseCard({ data }: iAppProps) {
         </DropdownMenu>
       </div>
 
-      {/* Thumbnail Image - Completely Fills Container */}
+      {/* Thumbnail Image - Completely Fills Container with Fallback */}
       <div className="relative w-full aspect-video overflow-hidden bg-muted rounded-t-2xl">
-        <Image 
-          src={thumbnailUrl} 
-          alt="Thumbnail" 
-          fill
-          className="object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        {thumbnailUrl ? (
+          <>
+            <Image 
+              src={thumbnailUrl} 
+              alt={data.title}
+              fill
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          </>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-muted">
+            <ImageIcon className="size-16 text-muted-foreground/30" />
+          </div>
+        )}
       </div>
 
       {/* Card Content */}

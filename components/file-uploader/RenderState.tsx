@@ -1,5 +1,7 @@
+"use client";
+import React from "react";
 import { cn } from "@/lib/utils";
-import { CloudUploadIcon, ImageIcon, XIcon, CheckCircle2Icon, Loader2Icon } from "lucide-react";
+import { CloudUploadIcon, ImageIcon, XIcon, CheckCircle2Icon, Loader2Icon, FileVideo } from "lucide-react";
 import { Button } from "../ui/button";
 
 export function RenderEmptyState({ isDragActive }: { isDragActive: boolean }) {
@@ -77,27 +79,99 @@ export function RenderUploadedState({
   fileUrl, 
   fileName,
   onRemove,
-  isDeleting = false 
+  isDeleting = false,
+  fileType = "image"
 }: { 
   fileUrl: string; 
   fileName?: string;
   onRemove?: () => void;
   isDeleting?: boolean;
+  fileType?: "image" | "video";
 }) {
+  const [videoError, setVideoError] = React.useState(false);
+  
+  // Define file extensions
+  const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.flv', '.m4v', '.3gp'];
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg', '.bmp', '.ico'];
+  
+  // Check if URL has video extension
+  const hasVideoExtension = videoExtensions.some(ext => fileUrl.toLowerCase().includes(ext));
+  
+  // Check if URL has image extension
+  const hasImageExtension = imageExtensions.some(ext => fileUrl.toLowerCase().includes(ext));
+  
+  // Smart detection: Only show video if fileType is "video" AND no image extension is found
+  const isVideo = fileType === "video" && hasVideoExtension && !hasImageExtension;
+
   return (
     <div className="text-center w-full h-full flex flex-col items-center justify-center relative">
-      {/* Display uploaded image */}
       <div className={cn(
-        "relative",
+        "relative w-full",
         isDeleting && "opacity-50"
       )}>
-        <img 
-          src={fileUrl} 
-          alt="Uploaded file" 
-          className="max-h-48 max-w-full object-contain mx-auto rounded mb-3"
-        />
+        {isVideo ? (
+          videoError ? (
+            <div className="flex flex-col items-center justify-center p-8 bg-muted rounded-lg mb-3">
+              <FileVideo className="size-16 text-muted-foreground mb-4" />
+              <p className="text-sm font-medium mb-2">Video uploaded successfully</p>
+              <p className="text-xs text-muted-foreground mb-3">
+                Preview unavailable - Video saved correctly
+              </p>
+              <a 
+                href={fileUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-xs text-primary underline hover:text-primary/80"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Open video in new tab
+              </a>
+            </div>
+          ) : (
+            <video 
+              key={`video-${fileUrl}`}
+              src={fileUrl}
+              controls
+              controlsList="nodownload"
+              className="max-h-48 max-w-full object-contain mx-auto rounded mb-3 bg-black"
+              preload="metadata"
+              playsInline
+              disablePictureInPicture
+              poster=""
+              crossOrigin="anonymous"
+              style={{ 
+                display: 'block',
+                backgroundColor: '#000'
+              }}
+              onLoadStart={() => {
+                setVideoError(false);
+              }}
+              onError={(e) => {
+                // Only log if it's not a CORS error (which is expected in dev)
+                if (e.currentTarget.error?.code !== 4) {
+                  console.error('❌ Video load error:', {
+                    errorCode: e.currentTarget.error?.code,
+                    errorMessage: e.currentTarget.error?.message,
+                  });
+                }
+                setVideoError(true);
+              }}
+              onCanPlay={() => {
+                setVideoError(false);
+              }}
+            >
+              Your browser does not support the video tag.
+            </video>
+          )
+        ) : (
+          <img 
+            key={`image-${fileUrl}`}
+            src={fileUrl} 
+            alt="Uploaded file" 
+            className="max-h-48 max-w-full object-contain mx-auto rounded mb-3"
+          />
+        )}
         
-        {/* Deleting overlay */}
         {isDeleting && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded">
             <div className="bg-white rounded-full p-3 shadow-lg">
@@ -107,22 +181,23 @@ export function RenderUploadedState({
         )}
       </div>
       
-      {/* Success indicator */}
       <div className="flex items-center gap-2 text-green-600">
-        <CheckCircle2Icon className="size-5" />
+        {isVideo ? (
+          <FileVideo className="size-5" />
+        ) : (
+          <CheckCircle2Icon className="size-5" />
+        )}
         <p className="text-sm font-medium">
           {isDeleting ? "Deleting..." : "Upload successful"}
         </p>
       </div>
       
-      {/* File name if provided */}
       {fileName && (
         <p className="text-xs text-muted-foreground mt-1 truncate max-w-xs">
           {fileName}
         </p>
       )}
       
-      {/* Delete button with loader */}
       {onRemove && (
         <button
           type="button"
@@ -141,7 +216,8 @@ export function RenderUploadedState({
             "transition-all duration-200",
             "hover:scale-110 active:scale-95",
             "border-2 border-red-400",
-            "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100",
+            "z-50"
           )}
         >
           {isDeleting ? (

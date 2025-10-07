@@ -18,10 +18,12 @@ import { tryCatch } from "@/hooks/try-catch";
 import { Createcourse } from "./actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useConfetti } from "@/hooks/use-confetti";
 
 export default function CourseCreationPage() {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const { triggerConfetti } = useConfetti();
   
   const form = useForm<CourseSchemaType>({
     resolver: zodResolver(courseSchema),
@@ -39,7 +41,7 @@ export default function CourseCreationPage() {
     }
   });
 
- function onSubmit(values: CourseSchemaType) {
+  function onSubmit(values: CourseSchemaType) {
     startTransition(async () => {
       const { data: result, error } = await tryCatch(Createcourse(values));
       
@@ -49,9 +51,13 @@ export default function CourseCreationPage() {
       }
       
       if (result.status === 'success') {
+        triggerConfetti();
         toast.success(result.message);
         form.reset();
-        router.push("/admin/courses");
+        
+        setTimeout(() => {
+          router.push("/admin/courses");
+        }, 1000);
       } else if (result.status === "error") {
         toast.error(result.message);
       }
@@ -120,25 +126,23 @@ export default function CourseCreationPage() {
                   )}
                 />
                 <Button 
-                   type="button" 
-                   variant="secondary"
-                   className="w-full sm:w-fit shrink-0" 
-                   disabled={pending || !form.watch("title")}
-                   onClick={() => {
+                  type="button" 
+                  variant="secondary"
+                  className="w-full sm:w-fit shrink-0" 
+                  disabled={pending || !form.watch("title")}
+                  onClick={() => {
                     const titleValue = form.getValues("title");
-                      if (titleValue) {
-                     const slug = slugify(titleValue, { lower: true, strict: true });
-                     // ✅ FIX: Remove shouldValidate to avoid validating the whole form
+                    if (titleValue) {
+                      const slug = slugify(titleValue, { lower: true, strict: true });
                       form.setValue('slug', slug);
-                     toast.success("Slug generated!");
+                      toast.success("Slug generated!");
                     }
-                   }}
-                  >
-                    <SparkleIcon className="mr-1.5 size-4" />
-                    Generate Slug
-                    </Button>
-
-                    </div>
+                  }}
+                >
+                  <SparkleIcon className="mr-1.5 size-4" />
+                  Generate Slug
+                </Button>
+              </div>
 
               {/* Small Description */}
               <FormField
@@ -186,6 +190,7 @@ export default function CourseCreationPage() {
                       <Uploader 
                         onChange={field.onChange}
                         value={field.value}
+                        accept="image/*"
                       />
                     </FormControl>
                     <FormMessage />

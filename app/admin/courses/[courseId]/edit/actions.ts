@@ -8,7 +8,6 @@ import { chapterSchema, chapterSchemaType, courseSchema, CourseSchemaType, lesso
 import { request } from "@arcjet/next";
 import { revalidatePath } from "next/cache";
 
-
 const aj = arcjet
   .withRule(
     detectBot({
@@ -75,7 +74,8 @@ export async function editCourse(
       status: "success",
       message: "Course updated successfully",
     };
-  } catch {
+  } catch (error) {
+    console.error("Failed to update course:", error);
     return {
       status: "error",
       message: "Failed to update course",
@@ -90,8 +90,6 @@ export async function createChapter(
 
   try {
     const req = await request();
-
-    
 
     const result = chapterSchema.safeParse(data);
     if (!result.success) {
@@ -144,14 +142,14 @@ export async function createChapter(
       message: "Chapter created successfully",
       data: newChapter,
     };
-  } catch {
+  } catch (error) {
+    console.error("Failed to create chapter:", error);
     return {
       status: "error",
       message: "Failed to create chapter",
     };
   }
 }
-
 
 export async function reorderChapters(
   chapters: { id: string; position: number }[],
@@ -223,7 +221,8 @@ export async function reorderChapters(
       status: "success",
       message: "Chapters reordered successfully",
     };
-  } catch {
+  } catch (error) {
+    console.error("Failed to reorder chapters:", error);
     return {
       status: "error",
       message: "Failed to reorder chapters.",
@@ -317,7 +316,8 @@ export async function reorderLessons(
       status: "success",
       message: "Lessons reordered successfully",
     };
-  } catch {
+  } catch (error) {
+    console.error("Failed to reorder lessons:", error);
     return {
       status: "error",
       message: "Failed to reorder lessons.",
@@ -353,6 +353,7 @@ export async function createLesson(
 
     const result = lessonSchema.safeParse(data);
     if (!result.success) {
+      console.error("Lesson validation failed:", result.error);
       return {
         status: "error",
         message: "Invalid data",
@@ -407,9 +408,9 @@ export async function createLesson(
         title: result.data.name,
         chapterId: result.data.chapterId,
         position: newPosition,
-        description: result.data.description,
-        thumbnailKey: result.data.thumbnailKey,
-        videoKey: result.data.videoKey,
+        description: result.data.description || null,
+        thumbnailKey: result.data.thumbnailKey || null,
+        videoKey: result.data.videoKey || null,
       },
     });
 
@@ -420,7 +421,8 @@ export async function createLesson(
       message: "Lesson created successfully",
       data: newLesson,
     };
-  } catch {
+  } catch (error) {
+    console.error("Failed to create lesson:", error);
     return {
       status: "error",
       message: "Failed to create lesson",
@@ -534,13 +536,15 @@ export async function deleteLesson(
       status: "success",
       message: "Lesson deleted successfully",
     };
-  } catch {
+  } catch (error) {
+    console.error("Failed to delete lesson:", error);
     return {
       status: "error",
       message: "Failed to delete lesson",
     };
   }
 }
+
 export async function deleteChapter(
   chapterId: string,
   courseId: string
@@ -631,10 +635,94 @@ export async function deleteChapter(
       status: "success",
       message: "Chapter deleted successfully",
     };
-  } catch {
+  } catch (error) {
+    console.error("Failed to delete chapter:", error);
     return {
       status: "error",
       message: "Failed to delete chapter",
+    };
+  }
+}
+
+export async function deleteCourse(courseId: string): Promise<ApiResponse> {
+  console.log('🔍 DELETE COURSE CALLED:', { courseId });
+
+  try {
+    const user = await requireAdmin();
+    console.log('✅ User authenticated:', user.user.id);
+
+    const req = await request();
+
+    const decision = await aj.protect(req, {
+      fingerprint: user.user.id,
+    });
+
+    if (decision.isDenied()) {
+      console.log('❌ Arcjet blocked request');
+      if (decision.reason.isRateLimit()) {
+        return {
+          status: "error",
+          message: "You have been blocked due to rate limiting",
+        };
+      } else {
+        return {
+          status: "error",
+          message: "You are a bot! If this is a mistake contact our support",
+        };
+      }
+    }
+
+    console.log('✅ Arcjet protection passed');
+
+    // Verify course ownership
+    const course = await prisma.course.findUnique({
+      where: {
+        id: courseId,
+        userId: user.user.id,
+      },
+    });
+
+    console.log('📚 Course found:', course ? course.title : 'NOT FOUND');
+
+    if (!course) {
+      console.log('❌ Course not found or unauthorized');
+      return {
+        status: "error",
+        message: "Course not found or unauthorized",
+      };
+    }
+
+    console.log('🗑️ Attempting to delete course:', {
+      courseId,
+      title: course.title,
+    });
+
+    // Delete the course (cascade will delete chapters and lessons automatically)
+    await prisma.course.delete({
+      where: {
+        id: courseId,
+      },
+    });
+
+    console.log('✅ Course deleted successfully from database:', courseId);
+
+    revalidatePath('/admin/courses');
+    console.log('✅ Cache revalidated');
+
+    return {
+      status: "success",
+      message: "Course deleted successfully",
+    };
+  } catch (error) {
+    console.error('❌ FULL ERROR DETAILS:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Failed to delete course",
     };
   }
 }
