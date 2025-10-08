@@ -1,19 +1,21 @@
-import { AppSidebar } from "@/components/sidebar/app-sidebar"
-
-import { SiteHeader } from "@/components/sidebar/site-header"
+import { AppSidebar } from "@/components/sidebar/app-sidebar";
+import { SiteHeader } from "@/components/sidebar/site-header";
 import {
   SidebarInset,
   SidebarProvider,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
+import { requireAdmin } from "@/app/data/admin/require-admin";
+import { ReactNode } from "react";
 
-import { ReactNode } from "react"
-
-export default function AdminLayout({
-  children
+export default async function AdminLayout({
+  children,
 }: {
-  children: ReactNode
-}){
-  return(
+  children: ReactNode;
+}) {
+  // Check if user is admin or instructor
+  const session = await requireAdmin();
+
+  return (
     <SidebarProvider
       style={
         {
@@ -34,5 +36,5 @@ export default function AdminLayout({
         </div>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

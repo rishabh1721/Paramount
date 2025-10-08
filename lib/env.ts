@@ -15,12 +15,20 @@ export const env = createEnv({
     AWS_ENDPOINT_URL_S3: z.string().min(1),
     AWS_ENDPOINT_URL_IAM: z.string().min(1),
     AWS_REGION: z.string().min(1),
+    STRIPE_SECRET_KEY: z.string().min(1),
+    STRIPE_WEBHOOK_SECRET: z.string().min(1),
+    AUTH_GOOGLE_CLIENT_ID: z.string().min(1),  // Add .min(1)
+    AUTH_GOOGLE_SECRET: z.string().min(1),  
+    PEXELS_API_KEY: z.string().min(1),  // Add .min(1)
   },
 
-  client:{
-    NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES:z.string().min(1)  },
+  client: {
+    NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES: z.string().min(1),
+    NEXT_PUBLIC_APP_URL: z.string().url(),
+  },
 
   experimental__runtimeEnv: {
-    NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES: process.env.NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES
+    NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES: process.env.NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   }
 });

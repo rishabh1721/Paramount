@@ -26,10 +26,16 @@ model User {
   accounts      Account[]
   courses       Course[]
 
+  enrollment Enrollment[]
+
+  stripeCustomerId String? @unique
+
   role       String?
   banned     Boolean?  @default(false)
   banReason  String?
   banExpires DateTime?
+
+  instructorApplication InstructorApplication?
 
   @@unique([email])
   @@map("user")
@@ -103,7 +109,8 @@ model Course {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
-  chapters Chapter[]
+  chapters   Chapter[]
+  enrollment Enrollment[]
 }
 
 enum CourseLevel {
@@ -141,9 +148,85 @@ model Lesson {
   thumbnailKey String?
   videoKey     String?
   position     Int
+  duration     Int     @default(0) // Add duration in seconds
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   Chapter   Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   chapterId String
+
+  lessonProgress LessonProgress[] // Add this relation
+}
+
+model Enrollment {
+  id String @id @default(uuid())
+
+  amount Int
+  status EnrollmentStatus @default(Pending)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId String
+  User     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+
+  lessonProgress LessonProgress[] // Changed to lowercase: lessonProgress
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+}
+
+enum EnrollmentStatus {
+  Pending
+  Active
+  Cancelled
+}
+
+model LessonProgress {
+  id String @id @default(uuid())
+
+  completed     Boolean   @default(false)
+  lastWatchedAt DateTime?
+  videoProgress Int       @default(0) // Seconds watched
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  enrollmentId String
+  Lesson       Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId     String
+
+  @@unique([enrollmentId, lessonId])
+  @@index([enrollmentId])
+  @@index([lessonId])
+}
+
+model InstructorApplication {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fullName   String
+  bio        String @db.Text
+  expertise  String
+  experience String @db.Text
+  motivation String @db.Text
+
+  status      ApplicationStatus @default(Pending)
+  submittedAt DateTime          @default(now())
+  reviewedAt  DateTime?
+  reviewedBy  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum ApplicationStatus {
+  Pending
+  Approved
+  Rejected
 }

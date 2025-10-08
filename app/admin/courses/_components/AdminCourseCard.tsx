@@ -16,46 +16,47 @@ export function AdminCourseCard({ data }: iAppProps) {
   const thumbnailUrl = useConstructUrl(data.fileKey);
   
   return (
-    <Card className="transition duration-300 bg-background shadow-lg hover:shadow-[0_4px_32px_0_rgba(0,0,0,0.12),0_0_16px_2px_rgba(255,255,255,0.10)] hover:scale-[1.02] hover:border hover:border-primary/30 rounded-2xl max-w-sm w-full group relative overflow-hidden">
+    <Card className="p-0 transition duration-300 bg-background shadow-lg hover:shadow-[0_4px_32px_0_rgba(0,0,0,0.12),0_0_16px_2px_rgba(255,255,255,0.10)] hover:scale-[1.02] hover:border hover:border-primary/30 rounded-2xl w-full group relative overflow-hidden">
       
-      {/* Dropdown Menu Button - Orange and Always Visible */}
-      <div className="absolute top-3 right-3 z-20">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant="secondary" 
-              size="icon" 
-              className="size-9 text-shadow-primary-foreground rounded-xl" 
-            >
-              <MoreVertical className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52 backdrop-blur-xl bg-background/95 border-border/50 shadow-2xl rounded-xl">
-            <DropdownMenuItem asChild>
-              <Link href={`/admin/courses/${data.id}/edit`} className="cursor-pointer rounded-lg hover:bg-primary/10 transition-colors duration-200 py-2.5">
-                <Pencil className="size-4 mr-2.5" />
-                Edit Course
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href={`/courses/${data.slug}`} className="cursor-pointer rounded-lg hover:bg-primary/10 transition-colors duration-200 py-2.5">
-                <Eye className="size-4 mr-2.5" />
-                Preview
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-border/50" />
-            <DropdownMenuItem asChild>
-              <Link href={`/admin/courses/${data.id}/delete`} className="cursor-pointer text-destructive focus:text-destructive rounded-lg hover:bg-destructive/10 transition-colors duration-200 py-2.5">
-                <Trash2 className="size-4 mr-2.5" />
-                Delete Course
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+     {/* Dropdown Menu Button - Primary Color Always */}
+<div className="absolute top-3 right-3 z-20">
+  <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <Button 
+        variant="default"
+        size="icon" 
+        className="size-9 bg-primary text-primary-foreground hover:bg-primary/90 backdrop-blur-xl shadow-lg rounded-xl" 
+      >
+        <MoreVertical className="size-4" />
+      </Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="end" className="w-52 backdrop-blur-xl bg-background/95 border-border/50 shadow-2xl rounded-xl">
+      <DropdownMenuItem asChild>
+        <Link href={`/admin/courses/${data.id}/edit`} className="cursor-pointer rounded-lg hover:bg-primary/10 transition-colors duration-200 py-2.5">
+          <Pencil className="size-4 mr-2.5" />
+          Edit Course
+        </Link>
+      </DropdownMenuItem>
+      <DropdownMenuItem asChild>
+        <Link href={`/courses/${data.slug}`} className="cursor-pointer rounded-lg hover:bg-primary/10 transition-colors duration-200 py-2.5">
+          <Eye className="size-4 mr-2.5" />
+          Preview
+        </Link>
+      </DropdownMenuItem>
+      <DropdownMenuSeparator className="bg-border/50" />
+      <DropdownMenuItem asChild>
+        <Link href={`/admin/courses/${data.id}/delete`} className="cursor-pointer text-destructive focus:text-destructive rounded-lg hover:bg-destructive/10 transition-colors duration-200 py-2.5">
+          <Trash2 className="size-4 mr-2.5" />
+          Delete Course
+        </Link>
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  </DropdownMenu>
+</div>
 
-      {/* Thumbnail Image - Completely Fills Container with Fallback */}
-      <div className="relative w-full aspect-video overflow-hidden bg-muted rounded-t-2xl">
+
+      {/* Thumbnail Image - Larger with Fallback */}
+      <div className="relative w-full aspect-[16/10] overflow-hidden bg-muted rounded-t-2xl">
         {thumbnailUrl ? (
           <>
             <Image 
@@ -68,23 +69,23 @@ export function AdminCourseCard({ data }: iAppProps) {
           </>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-muted">
-            <ImageIcon className="size-16 text-muted-foreground/30" />
+            <ImageIcon className="size-20 text-muted-foreground/30" />
           </div>
         )}
       </div>
 
       {/* Card Content */}
-      <CardContent className="p-5 space-y-4">
+      <CardContent className="p-6 space-y-5">
         
         {/* Title Section */}
         <div className="space-y-2">
           <Link 
             href={`/admin/courses/${data.id}/edit`} 
-            className="font-bold text-lg line-clamp-2 hover:text-primary transition-colors duration-200 block leading-tight"
+            className="font-bold text-xl line-clamp-2 hover:text-primary transition-colors duration-200 block leading-tight"
           >
             {data.title}
           </Link>
-          <p className="line-clamp-2 text-sm text-muted-foreground leading-relaxed">
+          <p className="line-clamp-3 text-sm text-muted-foreground leading-relaxed">
             {data.smallDescription}
           </p>
         </div>
@@ -92,8 +93,8 @@ export function AdminCourseCard({ data }: iAppProps) {
         {/* Divider */}
         <div className="h-px bg-border my-4" />
 
-        {/* Metadata */}
-        <div className="flex items-center gap-6">
+        {/* Metadata - Grid Layout */}
+        <div className="grid grid-cols-2 gap-4">
           <div className="flex items-center gap-2.5">
             <div className="flex items-center justify-center size-10 rounded-xl bg-primary/10 border border-primary/20">
               <TimerIcon className="size-4 text-primary" />
@@ -119,11 +120,11 @@ export function AdminCourseCard({ data }: iAppProps) {
           </div>
         </div>
 
-        {/* Edit Button */}
+        {/* Edit Button - Larger */}
         <Link 
           href={`/admin/courses/${data.id}/edit`} 
           className={buttonVariants({
-            className: "w-full mt-4 group/button py-5 text-sm font-semibold rounded-xl transition-all duration-300",
+            className: "w-full mt-4 group/button py-6 text-base font-semibold rounded-xl transition-all duration-300",
           })}
         >
           <span className="flex items-center justify-center gap-2">

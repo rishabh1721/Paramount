@@ -8,14 +8,15 @@ export async function requireAdmin() {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
-  if(!session){
+  
+  if (!session) {
     return redirect("/login");
   }
 
-  if(session.user.role !== "admin"){
+  // Allow both admin and instructor roles
+  if (session.user.role !== "admin" && session.user.role !== "instructor") {
     return redirect("/not-admin");
   }
 
   return session;
-  
 }

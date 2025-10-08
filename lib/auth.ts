@@ -1,5 +1,3 @@
-
-
 import { betterAuth } from "better-auth";
 import { emailOTP } from "better-auth/plugins"
 import { prismaAdapter } from "better-auth/adapters/prisma";
@@ -7,9 +5,6 @@ import { prisma } from "./db";
 import { env } from "./env";
 import { resend } from "./resend";
 import { admin } from "better-auth/plugins"
-
-
-
 
 export const auth = betterAuth({
     database: prismaAdapter(prisma, {
@@ -19,7 +14,11 @@ export const auth = betterAuth({
     socialProviders: {
         github: {
             clientId: env.AUTH_GITHUB_CLIENT_ID,
-            clientSecret:env.AUTH_GITHUB_SECRET,
+            clientSecret: env.AUTH_GITHUB_SECRET,
+        },
+        google: {
+            clientId: env.AUTH_GOOGLE_CLIENT_ID,
+            clientSecret: env.AUTH_GOOGLE_SECRET,
         },
     },
 
@@ -31,13 +30,10 @@ export const auth = betterAuth({
            to: [email],
            subject: 'Paramount - Verify your email',
            html: `<p>Your OTP is: <strong>${otp}</strong></p>`,
-  });
-
-
+          });
          }
      }),
 
      admin(),
-        
   ], 
 });
