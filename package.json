@@ -7,7 +7,8 @@
     "build": "next build --turbopack",
     "start": "next start -p 3002",
     "lint": "eslint",
-    "seed:courses": "tsx prisma/seed-courses.ts"
+    "seed:courses": "tsx prisma/seed-courses.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@arcjet/inspect": "1.0.0-beta.12",
