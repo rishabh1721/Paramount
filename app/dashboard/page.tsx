@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Rocket } from "lucide-react";
 import Link from "next/link";
 
+export const revalidate = 0; // Disable caching
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
+ 
   const user = await requireUser();
   const enrollments = await getUserEnrollments(user.id);
 
