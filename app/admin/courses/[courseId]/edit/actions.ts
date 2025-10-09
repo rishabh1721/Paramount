@@ -89,8 +89,6 @@ export async function createChapter(
   const user = await requireAdmin();
 
   try {
-    const req = await request();
-
     const result = chapterSchema.safeParse(data);
     if (!result.success) {
       return {
@@ -200,9 +198,9 @@ export async function reorderChapters(
       };
     }
 
-    // Update all chapters in a transaction
-    const updates = chapters.map((chapter) =>
-      prisma.chapter.update({
+    // Update all chapters sequentially (Neon doesn't support transactions on free tier)
+    for (const chapter of chapters) {
+      await prisma.chapter.update({
         where: {
           id: chapter.id,
           courseId: courseId,
@@ -210,10 +208,8 @@ export async function reorderChapters(
         data: {
           position: chapter.position,
         },
-      })
-    );
-
-    await prisma.$transaction(updates);
+      });
+    }
 
     revalidatePath(`/admin/courses/${courseId}/edit`);
 
@@ -295,9 +291,9 @@ export async function reorderLessons(
       };
     }
 
-    // Update all lessons in a transaction
-    const updates = lessons.map((lesson) =>
-      prisma.lesson.update({
+    // Update all lessons sequentially (Neon doesn't support transactions on free tier)
+    for (const lesson of lessons) {
+      await prisma.lesson.update({
         where: {
           id: lesson.id,
           chapterId: chapterId,
@@ -305,10 +301,8 @@ export async function reorderLessons(
         data: {
           position: lesson.position,
         },
-      })
-    );
-
-    await prisma.$transaction(updates);
+      });
+    }
 
     revalidatePath(`/admin/courses/${courseId}/edit`);
 
@@ -520,15 +514,13 @@ export async function deleteLesson(
       },
     });
 
-    // Update positions to fill the gap
-    await prisma.$transaction(
-      remainingLessons.map((lesson, index) =>
-        prisma.lesson.update({
-          where: { id: lesson.id },
-          data: { position: index + 1 },
-        })
-      )
-    );
+    // Update positions to fill the gap sequentially
+    for (let i = 0; i < remainingLessons.length; i++) {
+      await prisma.lesson.update({
+        where: { id: remainingLessons[i].id },
+        data: { position: i + 1 },
+      });
+    }
 
     revalidatePath(`/admin/courses/${courseId}/edit`);
 
@@ -619,15 +611,13 @@ export async function deleteChapter(
       },
     });
 
-    // Update positions to fill the gap
-    await prisma.$transaction(
-      remainingChapters.map((chapter, index) =>
-        prisma.chapter.update({
-          where: { id: chapter.id },
-          data: { position: index + 1 },
-        })
-      )
-    );
+    // Update positions to fill the gap sequentially
+    for (let i = 0; i < remainingChapters.length; i++) {
+      await prisma.chapter.update({
+        where: { id: remainingChapters[i].id },
+        data: { position: i + 1 },
+      });
+    }
 
     revalidatePath(`/admin/courses/${courseId}/edit`);
 

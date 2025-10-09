@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
-import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { CheckCircle, Sparkles, ArrowRight, BookOpen, Trophy, Video, FileText, Award, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -10,56 +10,66 @@ interface PageProps {
   searchParams: Promise<{ session_id?: string }>;
 }
 
+async function activateEnrollment(sessionId: string) {
+  try {
+    console.log("🎯 Success page - Retrieving session:", sessionId);
+    
+    const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
+    
+    console.log("💳 Payment status:", checkoutSession.payment_status);
+    console.log("📦 Metadata:", checkoutSession.metadata);
+    
+    if (checkoutSession.payment_status === "paid") {
+      const enrollmentId = checkoutSession.metadata?.enrollmentId;
+      
+      if (enrollmentId) {
+        console.log("🔍 Looking for enrollment:", enrollmentId);
+        
+        // Check if already active
+        const existingEnrollment = await prisma.enrollment.findUnique({
+          where: { id: enrollmentId },
+        });
+        
+        console.log("📚 Enrollment status:", existingEnrollment?.status);
+        
+        if (existingEnrollment?.status === "Pending") {
+          await prisma.enrollment.update({
+            where: { id: enrollmentId },
+            data: { status: "Active" },
+          });
+          
+          console.log("✅ Enrollment activated:", enrollmentId);
+          return { success: true, activated: true };
+        }
+        
+        return { success: true, activated: false, reason: "Already active" };
+      }
+      
+      console.log("❌ No enrollmentId in metadata");
+      return { success: false, error: "No enrollmentId" };
+    }
+    
+    console.log("❌ Payment not completed:", checkoutSession.payment_status);
+    return { success: false, error: "Payment not completed" };
+    
+  } catch (error) {
+    console.error("❌ Error activating enrollment:", error);
+    return { success: false, error: String(error) };
+  }
+}
+
 export default async function PaymentSuccessPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const sessionId = params.session_id;
 
-  console.log("🎯 Success page loaded with sessionId:", sessionId);
-
-  // Activate enrollment if session_id exists
-  if (sessionId) {
-    try {
-      console.log("🔍 Retrieving checkout session...");
-      const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
-      
-      console.log("💳 Payment status:", checkoutSession.payment_status);
-      console.log("📦 Metadata:", checkoutSession.metadata);
-      
-      if (checkoutSession.payment_status === "paid") {
-        const enrollmentId = checkoutSession.metadata?.enrollmentId;
-        
-        if (enrollmentId) {
-          console.log("🔄 Attempting to activate enrollment:", enrollmentId);
-          
-          const result = await prisma.enrollment.updateMany({
-            where: { 
-              id: enrollmentId,
-              status: "Pending"
-            },
-            data: { status: "Active" },
-          });
-          
-          console.log("✅ Update result:", result);
-          
-          if (result.count > 0) {
-            console.log(`✅ Successfully activated enrollment ${enrollmentId}`);
-            revalidatePath("/dashboard");
-            revalidatePath("/my-courses");
-          } else {
-            console.log("⚠️ No enrollment updated - might already be Active");
-          }
-        } else {
-          console.log("❌ No enrollmentId in metadata");
-        }
-      } else {
-        console.log("❌ Payment not completed:", checkoutSession.payment_status);
-      }
-    } catch (error) {
-      console.error("❌ Error in success page:", error);
-    }
-  } else {
-    console.log("⚠️ No session_id in URL");
+  if (!sessionId) {
+    redirect("/dashboard");
   }
+
+  // Activate enrollment
+  const result = await activateEnrollment(sessionId);
+  
+  console.log("🎯 Activation result:", result);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 relative overflow-hidden">
@@ -74,19 +84,15 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
         {/* Success Animation */}
         <div className="text-center mb-12 animate-in fade-in-0 zoom-in-95 duration-700">
           <div className="relative inline-block mb-6">
-            {/* Outer ring - pulsing */}
             <div className="absolute inset-0 animate-ping">
               <div className="size-32 rounded-full bg-emerald-400/30" />
             </div>
-            {/* Middle ring - rotating */}
             <div className="absolute inset-2 animate-spin [animation-duration:8s]">
               <div className="size-28 rounded-full border-4 border-dashed border-emerald-300/50" />
             </div>
-            {/* Inner circle - gradient */}
             <div className="relative flex size-32 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 shadow-2xl shadow-emerald-500/50">
               <CheckCircle className="size-16 text-white drop-shadow-lg" strokeWidth={2.5} />
             </div>
-            {/* Sparkle effects */}
             <Sparkles className="absolute -top-2 -right-2 size-8 text-yellow-400 animate-pulse" />
             <Sparkles className="absolute -bottom-2 -left-2 size-6 text-yellow-300 animate-pulse [animation-delay:300ms]" />
           </div>
@@ -101,7 +107,6 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
 
         {/* Main Card */}
         <div className="grid gap-8 animate-in fade-in-0 slide-in-from-bottom-8 duration-700 delay-400">
-          {/* Quick Actions */}
           <Card className="border-2 border-emerald-200/50 shadow-2xl bg-white/90 backdrop-blur-xl overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-teal-500/5 to-cyan-500/5" />
             <CardContent className="p-8 relative">
@@ -161,7 +166,6 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
             </CardContent>
           </Card>
 
-          {/* Next Steps */}
           <Card className="border-2 border-slate-200/50 shadow-xl bg-white/80 backdrop-blur-sm">
             <CardHeader className="pb-4">
               <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
@@ -188,7 +192,6 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
             </CardContent>
           </Card>
 
-          {/* Support Banner */}
           <div className="text-center space-y-2 py-6 px-4 rounded-2xl bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200/50">
             <p className="text-slate-600 font-medium">
               Need help? Our support team is here for you 24/7

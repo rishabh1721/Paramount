@@ -118,8 +118,9 @@ export async function enrollInCourseAction(courseId: string): Promise<ApiRespons
         courseId: course.id,
         enrollmentId: enrollment.id,
       },
-      success_url: `${env.NEXT_PUBLIC_APP_URL}/payment/success`,  // Changed
-      cancel_url: `${env.NEXT_PUBLIC_APP_URL}/payment/cancel`,    // Changed
+      // ✅ FIXED: Added {CHECKOUT_SESSION_ID} placeholder
+      success_url: `${env.NEXT_PUBLIC_APP_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${env.NEXT_PUBLIC_APP_URL}/payment/cancel`,
     });
 
     if (checkoutSession.url) {
