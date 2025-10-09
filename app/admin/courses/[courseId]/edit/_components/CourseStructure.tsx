@@ -83,24 +83,31 @@ export function CourseStructure({ data }: iAppProps) {
   })) || [];
 
   const [items, setItems] = useState(initialItems);
+  const [isReordering, setIsReordering] = useState(false);
 
+  // ✅ FIXED: Only update state when NOT actively reordering
   useEffect(() => {
-    setItems((prevItems) => {
-      const updatedItems = data.chapters.map((chapter) => ({
-        id: chapter.id,
-        title: chapter.title,
-        order: chapter.position,
-        isOpen: prevItems.find((item) => item.id === chapter.id)?.isOpen ?? true,
-        lessons: chapter.lessons.map((lesson) => ({
-          id: lesson.id,
-          title: lesson.title,
-          order: lesson.position,
-        })), 
-      })) || [];
+    if (!isReordering) {
+      setItems((prevItems) => {
+        const updatedItems = data.chapters.map((chapter) => {
+          const prevChapter = prevItems.find((item) => item.id === chapter.id);
+          return {
+            id: chapter.id,
+            title: chapter.title,
+            order: chapter.position,
+            isOpen: prevChapter?.isOpen ?? true, // Preserve open state
+            lessons: chapter.lessons.map((lesson) => ({
+              id: lesson.id,
+              title: lesson.title,
+              order: lesson.position,
+            })), 
+          };
+        }) || [];
 
-      return updatedItems;
-    });
-  }, [data]);
+        return updatedItems;
+      });
+    }
+  }, [data, isReordering]);
 
   function toggleChapter(chapterId: string) {
     setItems(
@@ -159,6 +166,7 @@ export function CourseStructure({ data }: iAppProps) {
 
       const previousItems = [...items];
       setItems(updatedChapterForState);
+      setIsReordering(true); // ✅ Prevent useEffect from reverting
 
       if (courseId) {
         const chaptersToUpdate = updatedChapterForState.map((chapter) => ({
@@ -171,6 +179,7 @@ export function CourseStructure({ data }: iAppProps) {
           {
             loading: 'Reordering chapters...',
             success: (result: ApiResponse) => {
+              setIsReordering(false); // ✅ Allow updates again
               if (result.status === 'success') {
                 return result.message;
               }
@@ -178,6 +187,7 @@ export function CourseStructure({ data }: iAppProps) {
             },
             error: (err: Error) => {
               setItems(previousItems);
+              setIsReordering(false); // ✅ Allow updates again
               return err.message || "Failed to reorder chapters";
             },
           }
@@ -225,6 +235,7 @@ export function CourseStructure({ data }: iAppProps) {
 
       const previousItems = [...items];
       setItems(newItems);
+      setIsReordering(true); // ✅ Prevent useEffect from reverting
 
       if (courseId) {
         const lessonsToUpdate = updatedLessonForState.map((lesson) => ({
@@ -237,6 +248,7 @@ export function CourseStructure({ data }: iAppProps) {
           {
             loading: 'Reordering lessons...',
             success: (result: ApiResponse) => {
+              setIsReordering(false); // ✅ Allow updates again
               if (result.status === 'success') {
                 return result.message;
               }
@@ -244,6 +256,7 @@ export function CourseStructure({ data }: iAppProps) {
             },
             error: (err: Error) => {
               setItems(previousItems);
+              setIsReordering(false); // ✅ Allow updates again
               return err.message || "Failed to reorder lessons";
             },
           }
