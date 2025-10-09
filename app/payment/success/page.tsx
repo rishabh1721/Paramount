@@ -66,8 +66,8 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-20 size-72 bg-emerald-200/30 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-20 right-20 size-96 bg-teal-200/30 rounded-full blur-3xl animate-pulse delay-700" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[500px] bg-cyan-200/20 rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute bottom-20 right-20 size-96 bg-teal-200/30 rounded-full blur-3xl animate-pulse [animation-delay:700ms]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[500px] bg-cyan-200/20 rounded-full blur-3xl animate-pulse [animation-delay:1000ms]" />
       </div>
 
       <div className="container max-w-4xl mx-auto px-4 py-16 relative z-10">
@@ -79,7 +79,7 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
               <div className="size-32 rounded-full bg-emerald-400/30" />
             </div>
             {/* Middle ring - rotating */}
-            <div className="absolute inset-2 animate-spin-slow">
+            <div className="absolute inset-2 animate-spin [animation-duration:8s]">
               <div className="size-28 rounded-full border-4 border-dashed border-emerald-300/50" />
             </div>
             {/* Inner circle - gradient */}
@@ -88,7 +88,7 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
             </div>
             {/* Sparkle effects */}
             <Sparkles className="absolute -top-2 -right-2 size-8 text-yellow-400 animate-pulse" />
-            <Sparkles className="absolute -bottom-2 -left-2 size-6 text-yellow-300 animate-pulse delay-300" />
+            <Sparkles className="absolute -bottom-2 -left-2 size-6 text-yellow-300 animate-pulse [animation-delay:300ms]" />
           </div>
           
           <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent animate-in slide-in-from-bottom-4 duration-700 delay-200">
@@ -199,20 +199,6 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes spin-slow {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 8s linear infinite;
-        }
-      `}</style>
     </div>
   );
 }
