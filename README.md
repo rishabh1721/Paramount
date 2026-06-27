@@ -3,6 +3,7 @@
 # 🎓 Paramount LMS
 
 ### Next-Generation Learning Management System
+### https://paramount-neon.vercel.app
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
